@@ -63,13 +63,10 @@ export function GameUI({
   const [moveStatus, setMoveStatus] = useState<
     null | "pending" | "success" | string
   >(null);
-  const [actions, setActions] = useState<
-    Array<{ action: string; status: string; timestamp: Date }>
-  >([]);
   const {
-    isOpen: isActionsModalOpen,
-    onOpen: onActionsModalOpen,
-    onClose: onActionsModalClose,
+    isOpen: isGetEthModalOpen,
+    onOpen: onGetEthModalOpen,
+    onClose: onGetEthModalClose,
   } = useDisclosure();
 
   const { data: balance } = useBalance({
@@ -119,7 +116,7 @@ export function GameUI({
     const acc = privateKeyToAccount(pk);
     const newAccount = { address: acc.address, privateKey: pk };
     setAccount(newAccount);
-    setShowDetails(true);
+    setShowDetails(false);
     setShowPk(false);
     await set("rethmatch.account", newAccount);
     await set(`rethmatch.account.${acc.address.toLowerCase()}`, pk);
@@ -260,17 +257,6 @@ export function GameUI({
     }
   };
 
-  // Function to log actions
-  const logAction = (action: string, status: string) => {
-    const newAction = { action, status, timestamp: new Date() };
-    setActions((prev) => [...prev, newAction]);
-    // Store in IndexedDB
-    set(`rethmatch.actions.${account?.address.toLowerCase()}`, [
-      ...actions,
-      newAction,
-    ]);
-  };
-
   // Function to handle movement actions
   const handleMove = async (
     direction: string,
@@ -291,10 +277,8 @@ export function GameUI({
       });
       await sendTx(functionName, args);
       setMoveStatus("success");
-      logAction(`Move ${direction}`, "success");
     } catch (err: any) {
       setMoveStatus(err.message || "error");
-      logAction(`Move ${direction}`, err.message || "error");
     }
   };
 
@@ -402,9 +386,17 @@ export function GameUI({
               <Button size="xs" colorScheme="teal" onClick={onOpen}>
                 Link X Account
               </Button>
-              <Button size="xs" onClick={onActionsModalOpen} ml={2}>
-                View Actions Log
-              </Button>
+              {/* Show Get testnet ETH button if balance is 0 */}
+              {balance && Number(balance.value) === 0 && (
+                <Button
+                  size="xs"
+                  colorScheme="orange"
+                  ml={2}
+                  onClick={onGetEthModalOpen}
+                >
+                  Get testnet ETH
+                </Button>
+              )}
               {/* X Username input field, always visible when account is present */}
               <input
                 style={{
@@ -903,30 +895,47 @@ export function GameUI({
         </Column>
       </Column>
 
-      {/* Add Actions Modal */}
-      <Modal
-        isOpen={isActionsModalOpen}
-        onClose={onActionsModalClose}
-        isCentered
-      >
+      {/* Modal for getting testnet ETH */}
+      <Modal isOpen={isGetEthModalOpen} onClose={onGetEthModalClose} isCentered>
         <ModalOverlay />
         <ModalContent background="#181818" color="#fff">
-          <ModalHeader color="#00E893">Actions Log</ModalHeader>
+          <ModalHeader color="#00E893">Get Testnet ETH</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {actions.map((action, index) => (
-              <Text
-                key={index}
-                fontSize="sm"
-                color={action.status === "success" ? "#00E893" : "#FF5700"}
+            <Text mb={3}>
+              You are on <b>Odyssey</b> testnet. To get ETH:
+            </Text>
+            <Text mb={2}>
+              1. Read about Odyssey and its testnet at{" "}
+              <a
+                href="https://ithaca.xyz/updates/odyssey"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#00E893", textDecoration: "underline" }}
               >
-                {action.action}: {action.status} at{" "}
-                {action.timestamp.toLocaleTimeString()}
-              </Text>
-            ))}
+                ithaca.xyz/updates/odyssey
+              </a>
+              .
+            </Text>
+            <Text mb={2}>
+              2. Bridge funds from Sepolia using the official bridge at{" "}
+              <a
+                href="https://hub.conduit.xyz/odyssey"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#00E893", textDecoration: "underline" }}
+              >
+                hub.conduit.xyz/odyssey
+              </a>
+              .
+            </Text>
+            <Text fontSize="sm" color="#aaa">
+              (You will need Sepolia ETH to bridge. The process is fast if you
+              have some.)
+            </Text>
           </ModalBody>
           <ModalFooter>
-            <Button size="sm" onClick={onActionsModalClose}>
+            <Button size="sm" onClick={onGetEthModalClose}>
               Close
             </Button>
           </ModalFooter>
