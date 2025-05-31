@@ -22,6 +22,7 @@ export function Lines({
   gameConfig,
   onLineClick,
   onSpawnRequest,
+  xUsername,
 }: {
   liveState: LiveState;
   gameConfig: GameConfig;
@@ -31,6 +32,7 @@ export function Lines({
     rightNeighbor: bigint,
     velRight: boolean
   ) => void;
+  xUsername?: string;
 }) {
   const { lastProcessedTime, lines, lineStates, gameState } = liveState;
 
@@ -146,6 +148,12 @@ export function Lines({
                             entity.etype === EntityType.ALIVE
                               ? gameState.usernames.get(entity.entityId)
                               : null;
+
+                          const isUserEntity =
+                            xUsername &&
+                            username &&
+                            xUsername.trim().toLowerCase() ===
+                              username.trim().toLowerCase();
 
                           let sizeClass;
 
@@ -394,9 +402,11 @@ export function Lines({
                                     fontSize: `${12 * scale}px`,
                                     fontWeight: "bold",
                                     textShadow: `${1 * scale}px ${1 * scale}px ${2 * scale}px black`,
+                                    textAlign: "center",
                                   }}
                                 >
                                   {username}
+                                  {isUserEntity && <p>(You)</p>}
                                 </div>
                               )}
 

@@ -4,8 +4,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { ODYSSEY_CHAIN } from "./utils/chains";
 
 export const CHAIN_ID = import.meta.env.CHAIN_ID!;
-export const WORLD_ADDRESS = import.meta.env.WORLD_ADDRESS!;
-export const START_BLOCK = BigInt(import.meta.env.START_BLOCK ?? 0n);
+export const WORLD_ADDRESS = import.meta.env.VITE_WORLD_ADDRESS!;
+export const START_BLOCK = BigInt(import.meta.env.VITE_START_BLOCK ?? 0n);
 export const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!CHAIN_ID || !WORLD_ADDRESS || !START_BLOCK)

@@ -35,9 +35,6 @@ import { useBalance, usePublicClient } from "wagmi";
 import { WORLD_ABI } from "./constants/worldAbi";
 import leaderboardArchive from "./leaderboard-archive.json";
 
-const WORLD_CONTRACT =
-  "0xC1c9BA50c8E7Ef2b37806de7A5f3D295fB1cF1CE" as `0x${string}`;
-
 export function GameUI({
   liveState,
   gameConfig,
@@ -111,6 +108,12 @@ export function GameUI({
     })();
   }, []);
 
+  // Load xUsername from localStorage on mount
+  useEffect(() => {
+    const storedXUsername = localStorage.getItem("rethmatch.xUsername");
+    if (storedXUsername) setXUsername(storedXUsername);
+  }, []);
+
   const handleGenerateAccount = async () => {
     const pk = generatePrivateKey();
     const acc = privateKeyToAccount(pk);
@@ -164,7 +167,7 @@ export function GameUI({
         // Simulate contract for spawn and access
         const { request } = await publicClient.simulateContract({
           account: fullAccount,
-          address: WORLD_CONTRACT,
+          address: WORLD_ADDRESS,
           abi: WORLD_ABI,
           functionName,
           args,
@@ -172,15 +175,17 @@ export function GameUI({
         hash = await walletClient.writeContract({
           ...request,
           account: fullAccount,
+          gas: 5_000_000n,
         });
       } else {
         // Write contract directly for other actions
         hash = await walletClient.writeContract({
           account: fullAccount,
-          address: WORLD_CONTRACT,
+          address: WORLD_ADDRESS,
           abi: WORLD_ABI,
           functionName,
           args,
+          gas: 5_000_000n,
         });
       }
       console.log(`Transaction sent for ${functionName} with hash:`, hash);
@@ -231,7 +236,16 @@ export function GameUI({
     rightNeighbor: bigint,
     velRight: boolean
   ) => {
-    if (!account || !publicClient) return;
+    if (!account || !publicClient || !xUsername) {
+      toast({
+        title: "X Username Required",
+        description: "Please enter your X account username before spawning.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
     setSpawnStatus("pending");
     try {
       await sendTxWithReceipt(
@@ -264,6 +278,8 @@ export function GameUI({
     args: any[]
   ) => {
     if (!account) return;
+    // Only allow move if user's X username is active on the board
+    if (!xUsername) return;
     setMoveStatus("pending");
     try {
       await sendTx(functionName, args);
@@ -376,6 +392,27 @@ export function GameUI({
               <Button size="xs" onClick={onActionsModalOpen} ml={2}>
                 View Actions Log
               </Button>
+              {/* X Username input field, always visible when account is present */}
+              <input
+                style={{
+                  width: "180px",
+                  marginLeft: "8px",
+                  fontFamily: "monospace",
+                  fontSize: 14,
+                  padding: 4,
+                  borderRadius: 2,
+                  border: "1px solid #333",
+                  background: "#222",
+                  color: "#fff",
+                }}
+                placeholder="X Username (required)"
+                value={xUsername}
+                onChange={(e) => {
+                  setXUsername(e.target.value);
+                  localStorage.setItem("rethmatch.xUsername", e.target.value);
+                }}
+                autoComplete="off"
+              />
             </Box>
           )}
           {account && showDetails && (
@@ -669,6 +706,7 @@ export function GameUI({
             liveState={liveState}
             gameConfig={gameConfig}
             onSpawnRequest={handleSpawnRequest}
+            xUsername={xUsername}
           />
         </Row>
       </Column>
@@ -682,31 +720,6 @@ export function GameUI({
         borderColor="#1A1A1A"
         display={{ base: "none", xl: "flex" }}
       >
-        <Row
-          mainAxisAlignment="space-between"
-          crossAxisAlignment="center"
-          height="65px"
-          width="100%"
-          borderBottom="1px"
-          borderColor="#1A1A1A"
-          px={8}
-          color="#808080"
-        >
-          <Text fontWeight="bold">Player</Text>
-          <Tooltip
-            label={`Sum of your top ${gameConfig.highScoreTopK} lifetime scores. Each lifetime score = total mass consumed during that life.`}
-            bg="#262626"
-            fontFamily="BerkeleyMono, monospace"
-            hasArrow
-            mr={3}
-            boxShadow="0 0 5px #262626"
-          >
-            <Text>
-              Overall Score {width < 1440 ? null : <InfoOutlineIcon mb="3px" />}
-            </Text>
-          </Tooltip>
-        </Row>
-
         <Column
           mainAxisAlignment="flex-start"
           crossAxisAlignment="center"
@@ -715,68 +728,14 @@ export function GameUI({
           overflowY="auto"
           className="disableScrollBar fadeBottom"
         >
-          {(() => {
-            const allPlayers = new Map<string, { currentScore: number; archiveScore: number }>();
-
-            // Add players from current high scores.
-            Array.from(liveState.gameState.highScores).forEach(([entityId, highScores]) => {
-              const username =
-                liveState.gameState.usernames.get(entityId) ??
-                ("UNKNOWN " + entityId.toString().slice(0, 4)).toUpperCase();
-
-              const currentScore = Math.floor(sum(highScores).fromWad());
-
-              allPlayers.set(username, {
-                currentScore,
-                archiveScore: leaderboardArchive[username as keyof typeof leaderboardArchive] || 0,
-              });
-            });
-
-            // Add players from archive who aren't already in current scores.
-            Object.entries(leaderboardArchive).forEach(([username, archiveScore]) => {
-              if (!allPlayers.has(username)) {
-                allPlayers.set(username, {
-                  currentScore: 0,
-                  archiveScore,
-                });
-              }
-            });
-
-            // Convert to array, calculate total scores, filter and sort.
-            return Array.from(allPlayers.entries())
-              .map(([username, data]) => ({
-                username,
-                totalScore: data.currentScore + data.archiveScore,
-              }))
-              .filter((player) => player.totalScore > 0)
-              .sort((a, b) => b.totalScore - a.totalScore)
-              .map(({ username, totalScore }) => (
-                <Row
-                  key={username}
-                  mainAxisAlignment="space-between"
-                  crossAxisAlignment="center"
-                  width="100%"
-                  minHeight="50px"
-                  borderBottom="1px"
-                  borderColor="#1A1A1A"
-                  px={8}
-                  _hover={{
-                    backgroundColor: "#0D0D0d",
-                  }}
-                >
-                  <Text color={"white"}>{username}</Text>
-                  <Text color={"#FF5700"}>{totalScore.toLocaleString()}</Text>
-                </Row>
-              ));
-          })()}
-{/* Active Players Section */}
-<Box
+          {/* Active Players Section - already at the top */}
+          <Box
             width="100%"
-            borderTop="1px"
+            borderBottom="1px"
             borderColor="#1A1A1A"
             px={8}
             py={4}
-            mt={4}
+            mb={4}
           >
             <Text fontWeight="bold" fontSize="lg" color="#00E893" mb={2}>
               Active Players
@@ -815,6 +774,97 @@ export function GameUI({
                 ))}
             </Column>
           </Box>
+          {/* Player/Overall Score header moved here, above leaderboard */}
+          <Row
+            mainAxisAlignment="space-between"
+            crossAxisAlignment="center"
+            height="65px"
+            width="100%"
+            borderBottom="1px"
+            borderColor="#1A1A1A"
+            px={8}
+            color="#808080"
+          >
+            <Text fontWeight="bold">Player</Text>
+            <Tooltip
+              label={`Sum of your top ${gameConfig.highScoreTopK} lifetime scores. Each lifetime score = total mass consumed during that life.`}
+              bg="#262626"
+              fontFamily="BerkeleyMono, monospace"
+              hasArrow
+              mr={3}
+              boxShadow="0 0 5px #262626"
+            >
+              <Text>
+                Overall Score{" "}
+                {width < 1440 ? null : <InfoOutlineIcon mb="3px" />}
+              </Text>
+            </Tooltip>
+          </Row>
+          {/* Overall Leaderboard Section - now below active players and header */}
+          {(() => {
+            const allPlayers = new Map<
+              string,
+              { currentScore: number; archiveScore: number }
+            >();
+
+            // Add players from current high scores.
+            Array.from(liveState.gameState.highScores).forEach(
+              ([entityId, highScores]) => {
+                const username =
+                  liveState.gameState.usernames.get(entityId) ??
+                  ("UNKNOWN " + entityId.toString().slice(0, 4)).toUpperCase();
+
+                const currentScore = Math.floor(sum(highScores).fromWad());
+
+                allPlayers.set(username, {
+                  currentScore,
+                  archiveScore:
+                    leaderboardArchive[
+                      username as keyof typeof leaderboardArchive
+                    ] || 0,
+                });
+              }
+            );
+
+            // Add players from archive who aren't already in current scores.
+            Object.entries(leaderboardArchive).forEach(
+              ([username, archiveScore]) => {
+                if (!allPlayers.has(username)) {
+                  allPlayers.set(username, {
+                    currentScore: 0,
+                    archiveScore,
+                  });
+                }
+              }
+            );
+
+            // Convert to array, calculate total scores, filter and sort.
+            return Array.from(allPlayers.entries())
+              .map(([username, data]) => ({
+                username,
+                totalScore: data.currentScore + data.archiveScore,
+              }))
+              .filter((player) => player.totalScore > 0)
+              .sort((a, b) => b.totalScore - a.totalScore)
+              .map(({ username, totalScore }) => (
+                <Row
+                  key={username}
+                  mainAxisAlignment="space-between"
+                  crossAxisAlignment="center"
+                  width="100%"
+                  minHeight="50px"
+                  borderBottom="1px"
+                  borderColor="#1A1A1A"
+                  px={8}
+                  _hover={{
+                    backgroundColor: "#0D0D0d",
+                  }}
+                >
+                  <Text color={"white"}>{username}</Text>
+                  <Text color={"#FF5700"}>{totalScore.toLocaleString()}</Text>
+                </Row>
+              ));
+          })()}
         </Column>
       </Column>
 
