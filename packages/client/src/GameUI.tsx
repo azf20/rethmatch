@@ -361,21 +361,27 @@ export function GameUI({
               <Text color="#00E893" fontWeight="bold" fontSize="sm" mr={2}>
                 Address:
               </Text>
-              <Text
-                color="white"
-                fontFamily="monospace"
-                fontSize="sm"
-                noOfLines={1}
-                wordBreak="break-all"
-                flex={1}
-                mr={2}
+              <a
+                href={`https://odyssey-explorer.ithaca.xyz/address/${account.address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#fff",
+                  fontFamily: "monospace",
+                  fontSize: "sm",
+                  textDecoration: "underline",
+                  wordBreak: "break-all",
+                  flex: 1,
+                  marginRight: 8,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                }}
                 title={account.address}
-                overflow="hidden"
-                textOverflow="ellipsis"
-                whiteSpace="nowrap"
               >
                 {account.address}
-              </Text>
+              </a>
               {balance && (
                 <Text
                   color="#00E893"
@@ -771,9 +777,19 @@ export function GameUI({
                     borderColor="#1A1A1A"
                     px={0}
                   >
-                    <Text color="white">
+                    <a
+                      href={`https://x.com/${liveState.gameState.usernames.get(entity.entityId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "#00E893",
+                        textDecoration: "underline",
+                        fontWeight: "bold",
+                        fontFamily: "monospace",
+                      }}
+                    >
                       {liveState.gameState.usernames.get(entity.entityId)}
-                    </Text>
+                    </a>
                     <Text color="#FFC000">
                       {Math.floor(entity.mass.fromWad()).toLocaleString()}
                     </Text>
@@ -867,7 +883,19 @@ export function GameUI({
                     backgroundColor: "#0D0D0d",
                   }}
                 >
-                  <Text color={"white"}>{username}</Text>
+                  <a
+                    href={`https://x.com/${username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "#00E893",
+                      textDecoration: "underline",
+                      fontWeight: "bold",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {username}
+                  </a>
                   <Text color={"#FF5700"}>{totalScore.toLocaleString()}</Text>
                 </Row>
               ));
