@@ -33,6 +33,7 @@ import { createWalletClient, encodeFunctionData, http } from "viem";
 import { odysseyTestnet } from "viem/chains";
 import { useBalance, usePublicClient } from "wagmi";
 import { WORLD_ABI } from "./constants/worldAbi";
+import leaderboardArchive from "./leaderboard-archive.json";
 
 const WORLD_CONTRACT =
   "0xC1c9BA50c8E7Ef2b37806de7A5f3D295fB1cF1CE" as `0x${string}`;
@@ -715,11 +716,19 @@ export function GameUI({
           className="disableScrollBar fadeBottom"
         >
           {Array.from(liveState.gameState.highScores)
-
             .map(([entityId, highScores]) => [entityId, sum(highScores)]) // Summed to turn k high scores into one ranking score.
             .filter(([_, score]) => score > 0n)
             .sort((a, b) => Number(b[1] - a[1])) // Descending order.
             .map(([entityId, score]) => {
+              const username =
+                liveState.gameState.usernames.get(entityId) ??
+                ("UNKNOWN " + entityId.toString().slice(0, 4)).toUpperCase();
+
+              let displayScore = Math.floor(score.fromWad());
+              if (username in leaderboardArchive) {
+                displayScore += leaderboardArchive[username as keyof typeof leaderboardArchive];
+              }
+
               return (
                 <Row
                   key={entityId.toString()}
@@ -734,15 +743,8 @@ export function GameUI({
                     backgroundColor: "#0D0D0d",
                   }}
                 >
-                  <Text color={"white"}>
-                    {liveState.gameState.usernames.get(entityId) ??
-                      (
-                        "UNKNOWN " + entityId.toString().slice(0, 4)
-                      ).toUpperCase()}
-                  </Text>
-                  <Text color={"#FF5700"}>
-                    {Math.floor(score.fromWad()).toLocaleString()}
-                  </Text>
+                  <Text color={"white"}>{username}</Text>
+                  <Text color={"#FF5700"}>{displayScore.toLocaleString()}</Text>
                 </Row>
               );
             })}
