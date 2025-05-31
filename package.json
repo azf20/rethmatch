@@ -8,7 +8,6 @@
     "mud:up": "pnpm mud set-version --tag main && pnpm install"
   },
   "devDependencies": {
-    "@latticexyz/cli": "2.2.22-3baa3fd86f5917471729ba6551f12c17cdca53e3",
     "@types/debug": "4.1.7",
     "@typescript-eslint/eslint-plugin": "7.1.1",
     "@typescript-eslint/parser": "7.1.1",

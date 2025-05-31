@@ -11,11 +11,25 @@ import {
   Entity,
   isPoweredUp,
 } from "./utils/game/entityLib";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { SmallCrab, MediumCrab, BigCrab } from "./utils/icons";
 import { colorToGlowClass, calculateLineVisibility } from "./utils/lineUI";
 
-export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameConfig: GameConfig }) {
+export function Lines({
+  liveState,
+  gameConfig,
+  onLineClick,
+  onSpawnRequest,
+}: {
+  liveState: LiveState;
+  gameConfig: GameConfig;
+  onLineClick?: (lineId: number) => void;
+  onSpawnRequest?: (
+    lineId: number,
+    rightNeighbor: bigint,
+    velRight: boolean
+  ) => void;
+}) {
   const { lastProcessedTime, lines, lineStates, gameState } = liveState;
 
   const configLineWidth = gameConfig.lineWidth.fromWad(); // Cache here to avoid recomputing.
@@ -24,7 +38,16 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
 
   // If the game config's line width is greater than the container's width, we need to
   // scale both the width and height of the all the lines and the entities within them.
-  const scale = Math.min(1, (containerRef.current?.offsetWidth ?? 1000) / configLineWidth);
+  const scale = Math.min(
+    1,
+    (containerRef.current?.offsetWidth ?? 1000) / configLineWidth
+  );
+
+  const [hoveredEntity, setHoveredEntity] = useState<{
+    lineId: number;
+    entityId: bigint;
+    rightNeighbor: bigint;
+  } | null>(null);
 
   return (
     <div
@@ -52,15 +75,21 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
             const lineHeight = 100 * scale;
             const marginBottom = 25 * scale;
 
-            const { isVisible, isOnlyPartiallyVisible } = calculateLineVisibility(
-              acc.totalHeight,
-              (acc.totalHeight += lineHeight + marginBottom),
-              containerRef.current?.clientHeight ?? 0,
-              containerRef.current?.scrollTop ?? 0
-            );
+            const { isVisible, isOnlyPartiallyVisible } =
+              calculateLineVisibility(
+                acc.totalHeight,
+                (acc.totalHeight += lineHeight + marginBottom),
+                containerRef.current?.clientHeight ?? 0,
+                containerRef.current?.scrollTop ?? 0
+              );
 
             acc.elements.push(
-              <div key={lineId} id={`line-${lineId}`}>
+              <div
+                key={lineId}
+                id={`line-${lineId}`}
+                onClick={() => onLineClick?.(lineId)}
+                style={{ cursor: onLineClick ? "pointer" : undefined }}
+              >
                 <div
                   style={{
                     width: `${configLineWidth * scale}px`,
@@ -70,7 +99,9 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
 
                     // Don't fade out the first and last lines. This is done because
                     // isElementInViewport is kinda glitchy for the first & last lines.
-                    ...(isOnlyPartiallyVisible && i !== 0 && i !== lines.length - 1
+                    ...(isOnlyPartiallyVisible &&
+                    i !== 0 &&
+                    i !== lines.length - 1
                       ? { opacity: 0.5 }
                       : {}),
 
@@ -79,7 +110,10 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
                   {...(isVisible ? { className: "lineContainer" } : {})}
                 >
                   {isVisible && (
-                    <div className="line" style={{ minHeight: `${lineHeight}px` }}>
+                    <div
+                      className="line"
+                      style={{ minHeight: `${lineHeight}px` }}
+                    >
                       <>
                         <div
                           style={{
@@ -99,8 +133,12 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
                         {line.map((entity) => {
                           const eid = entity.entityId;
 
-                          const diameter = computeDiameter(entity).fromWad() * scale;
-                          const height = entity.etype == EntityType.WALL ? lineHeight : diameter;
+                          const diameter =
+                            computeDiameter(entity).fromWad() * scale;
+                          const height =
+                            entity.etype == EntityType.WALL
+                              ? lineHeight
+                              : diameter;
 
                           const username =
                             entity.etype === EntityType.ALIVE
@@ -110,18 +148,25 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
                           let sizeClass;
 
                           if (
-                            isPoweredUp(entity, lastProcessedTime, gameConfig.powerPelletEffectTime)
+                            isPoweredUp(
+                              entity,
+                              lastProcessedTime,
+                              gameConfig.powerPelletEffectTime
+                            )
                           ) {
                             sizeClass = "big"; // If the entity is powered up, they're automatically "big"
                           } else {
-                            const postJumpDecayMass = computeMassAfterJumpingLine(
-                              entity.mass,
-                              gameConfig.lineJumpDecayFactor
-                            );
+                            const postJumpDecayMass =
+                              computeMassAfterJumpingLine(
+                                entity.mass,
+                                gameConfig.lineJumpDecayFactor
+                              );
                             sizeClass =
-                              postJumpDecayMass >= 4n * gameConfig.playerStartingMass
+                              postJumpDecayMass >=
+                              4n * gameConfig.playerStartingMass
                                 ? "big"
-                                : postJumpDecayMass >= 2n * gameConfig.playerStartingMass
+                                : postJumpDecayMass >=
+                                    2n * gameConfig.playerStartingMass
                                   ? "medium"
                                   : "small";
                           }
@@ -166,8 +211,13 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
                                 )
                                   ? `${colorToGlowClass(color)} ${(
                                       (1 -
-                                        (lastProcessedTime - entity.lastConsumedPowerPelletTime)
-                                          .divWad(gameConfig.powerPelletEffectTime)
+                                        (
+                                          lastProcessedTime -
+                                          entity.lastConsumedPowerPelletTime
+                                        )
+                                          .divWad(
+                                            gameConfig.powerPelletEffectTime
+                                          )
                                           .fromWad()) *
                                         0.4 +
                                       0.1
@@ -178,8 +228,82 @@ export function Lines({ liveState, gameConfig }: { liveState: LiveState; gameCon
                                 display: "flex",
                                 justifyContent: "center",
                                 alignItems: "center",
+                                position: "relative",
                               }}
+                              onMouseEnter={() =>
+                                setHoveredEntity({
+                                  lineId,
+                                  entityId: entity.entityId,
+                                  rightNeighbor: entity.rightNeighbor,
+                                })
+                              }
+                              onMouseLeave={() =>
+                                setHoveredEntity((h) =>
+                                  h && h.entityId === entity.entityId ? null : h
+                                )
+                              }
                             >
+                              {/* Spawn arrows on hover */}
+                              {hoveredEntity &&
+                                hoveredEntity.entityId === entity.entityId &&
+                                onSpawnRequest && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: "-18px",
+                                      left: 0,
+                                      width: "100%",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      pointerEvents: "auto",
+                                      zIndex: 200,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        cursor: "pointer",
+                                        fontSize: 18,
+                                        color: "#00E893",
+                                        background: "#181818",
+                                        borderRadius: 4,
+                                        padding: "0 4px",
+                                      }}
+                                      title="Spawn to the left"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpawnRequest(
+                                          lineId,
+                                          entity.entityId,
+                                          false
+                                        );
+                                      }}
+                                    >
+                                      ←
+                                    </span>
+                                    <span
+                                      style={{
+                                        cursor: "pointer",
+                                        fontSize: 18,
+                                        color: "#00E893",
+                                        background: "#181818",
+                                        borderRadius: 4,
+                                        padding: "0 4px",
+                                      }}
+                                      title="Spawn to the right"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpawnRequest(
+                                          lineId,
+                                          entity.rightNeighbor,
+                                          true
+                                        );
+                                      }}
+                                    >
+                                      →
+                                    </span>
+                                  </div>
+                                )}
+
                               {DEBUG_ITER != null || DEBUG_EMOJI != null ? (
                                 <div
                                   style={{

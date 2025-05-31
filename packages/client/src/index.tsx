@@ -24,19 +24,17 @@ import { stash } from "./mud/stash";
 
 createRoot(document.getElementById("react-root")!).render(
   <ChakraProvider>
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-      <WagmiProvider config={WAGMI_CONFIG}>
-        <QueryClientProvider client={QUERY_CLIENT}>
-          <SyncProvider
-            chainId={CHAIN_ID}
-            address={WORLD_ADDRESS}
-            startBlock={START_BLOCK}
-            adapter={createSyncAdapter({ stash })}
-          >
-            <App />
-          </SyncProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </ClerkProvider>
+    <WagmiProvider config={WAGMI_CONFIG}>
+      <QueryClientProvider client={QUERY_CLIENT}>
+        <SyncProvider
+          chainId={CHAIN_ID}
+          address={WORLD_ADDRESS}
+          startBlock={START_BLOCK}
+          adapter={createSyncAdapter({ stash })}
+        >
+          <App />
+        </SyncProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   </ChakraProvider>
 );
