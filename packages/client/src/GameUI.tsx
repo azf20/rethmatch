@@ -32,46 +32,10 @@ import { set, get, del } from "idb-keyval";
 import { createWalletClient, encodeFunctionData, http } from "viem";
 import { odysseyTestnet } from "viem/chains";
 import { useBalance, usePublicClient } from "wagmi";
+import { WORLD_ABI } from "./constants/worldAbi";
 
 const WORLD_CONTRACT =
   "0xC1c9BA50c8E7Ef2b37806de7A5f3D295fB1cF1CE" as `0x${string}`;
-const WORLD_ABI = [
-  {
-    inputs: [
-      { internalType: "bytes", name: "accessSignature", type: "bytes" },
-      { internalType: "string", name: "username", type: "string" },
-    ],
-    name: "access",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint32", name: "line", type: "uint32" },
-      { internalType: "uint160", name: "rightNeighbor", type: "uint160" },
-      { internalType: "bool", name: "velRight", type: "bool" },
-    ],
-    name: "spawn",
-    outputs: [{ internalType: "uint160", name: "entityId", type: "uint160" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "bool", name: "velRight", type: "bool" }],
-    name: "setDirection",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "bool", name: "up", type: "bool" }],
-    name: "jumpToLine",
-    outputs: [{ internalType: "uint32", name: "newLine", type: "uint32" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-];
 
 export function GameUI({
   liveState,
@@ -169,18 +133,12 @@ export function GameUI({
     if (!account || !accessSig || !xUsername) return;
     setTxStatus("pending");
     try {
-      // Prepare calldata
-      const data = encodeFunctionData({
-        abi: WORLD_ABI,
-        functionName: "access",
-        args: [accessSig, xUsername.toLowerCase()],
-      });
-      // Send transaction
-      const hash = await walletClient!.sendTransaction({
-        to: WORLD_CONTRACT,
-        data,
-        value: 0n,
-      });
+      await sendTxWithReceipt(
+        "access",
+        [accessSig, xUsername.toLowerCase()],
+        "Account linked!",
+        "Link failed"
+      );
       setTxStatus("success");
     } catch (err: any) {
       setTxStatus(err.message || "error");
@@ -194,19 +152,36 @@ export function GameUI({
     successMsg?: string,
     errorMsg?: string
   ) => {
-    if (!walletClient || !publicClient) return;
+    if (!walletClient || !publicClient || !account) return;
+    const fullAccount = privateKeyToAccount(
+      account.privateKey as `0x${string}`
+    );
     try {
       console.log(`Sending transaction for ${functionName} with args:`, args);
-      const data = encodeFunctionData({
-        abi: WORLD_ABI,
-        functionName,
-        args,
-      });
-      const hash = await walletClient.sendTransaction({
-        to: WORLD_CONTRACT,
-        data,
-        value: 0n,
-      });
+      let hash;
+      if (functionName === "spawn" || functionName === "access") {
+        // Simulate contract for spawn and access
+        const { request } = await publicClient.simulateContract({
+          account: fullAccount,
+          address: WORLD_CONTRACT,
+          abi: WORLD_ABI,
+          functionName,
+          args,
+        });
+        hash = await walletClient.writeContract({
+          ...request,
+          account: fullAccount,
+        });
+      } else {
+        // Write contract directly for other actions
+        hash = await walletClient.writeContract({
+          account: fullAccount,
+          address: WORLD_CONTRACT,
+          abi: WORLD_ABI,
+          functionName,
+          args,
+        });
+      }
       console.log(`Transaction sent for ${functionName} with hash:`, hash);
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(`Transaction receipt for ${functionName}:`, receipt);
@@ -239,6 +214,7 @@ export function GameUI({
         duration: 5000,
         isClosable: true,
       });
+      console.error(err);
       throw err;
     }
   };
