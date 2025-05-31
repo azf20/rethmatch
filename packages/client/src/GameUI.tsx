@@ -715,23 +715,44 @@ export function GameUI({
           overflowY="auto"
           className="disableScrollBar fadeBottom"
         >
-          {Array.from(liveState.gameState.highScores)
-            .map(([entityId, highScores]) => [entityId, sum(highScores)]) // Summed to turn k high scores into one ranking score.
-            .filter(([_, score]) => score > 0n)
-            .sort((a, b) => Number(b[1] - a[1])) // Descending order.
-            .map(([entityId, score]) => {
+          {(() => {
+            const allPlayers = new Map<string, { currentScore: number; archiveScore: number }>();
+
+            // Add players from current high scores.
+            Array.from(liveState.gameState.highScores).forEach(([entityId, highScores]) => {
               const username =
                 liveState.gameState.usernames.get(entityId) ??
                 ("UNKNOWN " + entityId.toString().slice(0, 4)).toUpperCase();
 
-              let displayScore = Math.floor(score.fromWad());
-              if (username in leaderboardArchive) {
-                displayScore += leaderboardArchive[username as keyof typeof leaderboardArchive];
-              }
+              const currentScore = Math.floor(sum(highScores).fromWad());
 
-              return (
+              allPlayers.set(username, {
+                currentScore,
+                archiveScore: leaderboardArchive[username as keyof typeof leaderboardArchive] || 0,
+              });
+            });
+
+            // Add players from archive who aren't already in current scores.
+            Object.entries(leaderboardArchive).forEach(([username, archiveScore]) => {
+              if (!allPlayers.has(username)) {
+                allPlayers.set(username, {
+                  currentScore: 0,
+                  archiveScore,
+                });
+              }
+            });
+
+            // Convert to array, calculate total scores, filter and sort.
+            return Array.from(allPlayers.entries())
+              .map(([username, data]) => ({
+                username,
+                totalScore: data.currentScore + data.archiveScore,
+              }))
+              .filter((player) => player.totalScore > 0)
+              .sort((a, b) => b.totalScore - a.totalScore)
+              .map(({ username, totalScore }) => (
                 <Row
-                  key={entityId.toString()}
+                  key={username}
                   mainAxisAlignment="space-between"
                   crossAxisAlignment="center"
                   width="100%"
@@ -744,13 +765,12 @@ export function GameUI({
                   }}
                 >
                   <Text color={"white"}>{username}</Text>
-                  <Text color={"#FF5700"}>{displayScore.toLocaleString()}</Text>
+                  <Text color={"#FF5700"}>{totalScore.toLocaleString()}</Text>
                 </Row>
-              );
-            })}
-
-          {/* Active Players Section */}
-          <Box
+              ));
+          })()}
+{/* Active Players Section */}
+<Box
             width="100%"
             borderTop="1px"
             borderColor="#1A1A1A"
