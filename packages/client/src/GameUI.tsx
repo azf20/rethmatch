@@ -499,6 +499,27 @@ export function GameUI({
               >
                 Experimental
               </Button>
+              {/* X Username input field, always visible when account is present */}
+              <input
+                style={{
+                  width: "180px",
+                  marginLeft: "8px",
+                  fontFamily: "monospace",
+                  fontSize: 14,
+                  padding: 4,
+                  borderRadius: 2,
+                  border: "1px solid #333",
+                  background: "#222",
+                  color: "#fff",
+                }}
+                placeholder="X Username (required)"
+                value={xUsername}
+                onChange={(e) => {
+                  setXUsername(e.target.value);
+                  localStorage.setItem("rethmatch.xUsername", e.target.value);
+                }}
+                autoComplete="off"
+              />
             </Box>
           )}
           {account && showDetails && (
