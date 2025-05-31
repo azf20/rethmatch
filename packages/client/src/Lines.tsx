@@ -10,10 +10,12 @@ import {
   EntityType,
   Entity,
   isPoweredUp,
+  isLeftmostEntity,
 } from "./utils/game/entityLib";
 import { useRef, useState } from "react";
 import { SmallCrab, MediumCrab, BigCrab } from "./utils/icons";
 import { colorToGlowClass, calculateLineVisibility } from "./utils/lineUI";
+import { formatEther } from "viem";
 
 export function Lines({
   liveState,
@@ -188,6 +190,10 @@ export function Lines({
                           // Boundary entities are an implementation detail.
                           if (isBoundaryEntity(eid)) return null;
 
+                          const canSpawnHere =
+                            !isLeftmostEntity(entity.entityId) &&
+                            entity.etype !== EntityType.DEAD;
+
                           return (
                             <div
                               key={eid.toString()}
@@ -243,18 +249,20 @@ export function Lines({
                                 )
                               }
                             >
-                              {/* Spawn arrows on hover */}
-                              {hoveredEntity &&
+                              {/* Spawn arrows on hover (left side) */}
+                              {canSpawnHere &&
+                                hoveredEntity &&
                                 hoveredEntity.entityId === entity.entityId &&
                                 onSpawnRequest && (
                                   <div
                                     style={{
                                       position: "absolute",
                                       top: "-18px",
-                                      left: 0,
-                                      width: "100%",
+                                      left: "-40px",
+                                      width: "40px",
                                       display: "flex",
-                                      justifyContent: "space-between",
+                                      flexDirection: "column",
+                                      alignItems: "center",
                                       pointerEvents: "auto",
                                       zIndex: 200,
                                     }}
@@ -267,8 +275,10 @@ export function Lines({
                                         background: "#181818",
                                         borderRadius: 4,
                                         padding: "0 4px",
+                                        marginBottom: 2,
+                                        pointerEvents: "auto",
                                       }}
-                                      title="Spawn to the left"
+                                      title="Spawn to the left and move left (away)"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         onSpawnRequest(
@@ -288,19 +298,65 @@ export function Lines({
                                         background: "#181818",
                                         borderRadius: 4,
                                         padding: "0 4px",
+                                        pointerEvents: "auto",
                                       }}
-                                      title="Spawn to the right"
+                                      title="Spawn to the left and move right (into entity)"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         onSpawnRequest(
                                           lineId,
-                                          entity.rightNeighbor,
+                                          entity.entityId,
                                           true
                                         );
                                       }}
                                     >
                                       →
                                     </span>
+                                  </div>
+                                )}
+
+                              {/* Entity info on hover (right side) */}
+                              {hoveredEntity &&
+                                hoveredEntity.entityId === entity.entityId && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: "-18px",
+                                      left: `calc(100% + 8px)`,
+                                      background: "#222",
+                                      color: "#fff",
+                                      borderRadius: 4,
+                                      fontSize: 12,
+                                      padding: "2px 8px",
+                                      zIndex: 200,
+                                      whiteSpace: "nowrap",
+                                      boxShadow: "0 2px 8px #0008",
+                                    }}
+                                  >
+                                    <div>Type: {EntityType[entity.etype]}</div>
+                                    <div>
+                                      Mass:{" "}
+                                      {Number(formatEther(entity.mass)).toFixed(
+                                        2
+                                      )}
+                                    </div>
+                                    <div>
+                                      Velocity:{" "}
+                                      {Number(
+                                        formatEther(
+                                          computeVelocity(
+                                            entity,
+                                            gameConfig.velocityCoefficient
+                                          )
+                                        )
+                                      ).toFixed(2)}
+                                    </div>
+                                    <div>
+                                      Diameter:{" "}
+                                      {Number(
+                                        formatEther(computeDiameter(entity))
+                                      ).toFixed(2)}
+                                    </div>
                                   </div>
                                 )}
 
