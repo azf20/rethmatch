@@ -154,11 +154,6 @@ body {
   }
 }
 
-.chakra-alert {
-  /* background-color: #ff0420 !important; */
-  background-color: #ff5700 !important;
-}
-
 .chakra-alert__desc {
   padding-right: 25px;
 }

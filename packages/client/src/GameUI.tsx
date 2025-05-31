@@ -197,7 +197,7 @@ export function GameUI({
           title: successMsg || "Transaction Successful",
           description: `Transaction for ${functionName} succeeded.`,
           status: "success",
-          duration: 5000,
+          duration: 2000,
           isClosable: true,
         });
         return receipt;
@@ -207,7 +207,7 @@ export function GameUI({
           title: errorMsg || "Transaction Failed",
           description: `Transaction for ${functionName} failed.`,
           status: "error",
-          duration: 5000,
+          duration: 3000,
           isClosable: true,
         });
         return receipt;
@@ -217,7 +217,7 @@ export function GameUI({
         title: errorMsg || "Transaction Error",
         description: err.message || `Transaction for ${functionName} failed.`,
         status: "error",
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
       console.error(err);
@@ -282,6 +282,13 @@ export function GameUI({
     if (!xUsername) return;
     setMoveStatus("pending");
     try {
+      toast({
+        title: "Moving",
+        description: `Moving ${direction}`,
+        status: "info",
+        duration: 1000,
+        isClosable: true,
+      });
       await sendTx(functionName, args);
       setMoveStatus("success");
       logAction(`Move ${direction}`, "success");
