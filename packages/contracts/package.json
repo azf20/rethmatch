@@ -15,7 +15,6 @@
     "test": "tsc --noEmit && mud test"
   },
   "dependencies": {
-    "@latticexyz/cli": "2.2.22-3baa3fd86f5917471729ba6551f12c17cdca53e3",
     "@latticexyz/schema-type": "2.2.22-3baa3fd86f5917471729ba6551f12c17cdca53e3",
     "@latticexyz/store": "2.2.22-3baa3fd86f5917471729ba6551f12c17cdca53e3",
     "@latticexyz/world": "2.2.22-3baa3fd86f5917471729ba6551f12c17cdca53e3",
