@@ -68,17 +68,9 @@ export function GameUI({
   const [autoNonceMode, setAutoNonceMode] = useState(false);
   const { data: nonce, refetch: refetchNonce } = useTransactionCount({
     address: account?.address,
-    query: {
-      enabled: autoNonceMode,
-      refetchInterval: 4000,
-    },
   });
 
   const txnCount = useRef(0);
-
-  useEffect(() => {
-    txnCount.current = 0;
-  }, [nonce]);
 
   const [maxFeePerGas, setMaxFeePerGas] = useState(0);
 
@@ -159,10 +151,7 @@ export function GameUI({
     successMsg?: string,
     errorMsg?: string
   ) => {
-    if (!walletClient || !publicClient || !account) return;
-    const fullAccount = privateKeyToAccount(
-      account.privateKey as `0x${string}`
-    );
+    if (!walletClient || !publicClient) return;
     try {
       console.log(`Sending transaction for ${functionName} with args:`, args);
       let hash;
@@ -174,7 +163,7 @@ export function GameUI({
       if (functionName === "spawn" || functionName === "access") {
         // Simulate contract for spawn and access
         const { request } = await publicClient.simulateContract({
-          account: fullAccount,
+          account: walletClient.account,
           address: WORLD_ADDRESS,
           abi: WORLD_ABI,
           functionName,
@@ -185,14 +174,14 @@ export function GameUI({
         });
         hash = await walletClient.writeContract({
           ...request,
-          account: fullAccount,
-          gas: 5_000_000n,
+          account: walletClient.account,
+          gas: 2_000_000n,
           nonce: currentNonce,
         });
       } else {
         // Write contract directly for other actions
         hash = await walletClient.writeContract({
-          account: fullAccount,
+          account: walletClient.account,
           address: WORLD_ADDRESS,
           abi: WORLD_ABI,
           functionName,
@@ -200,7 +189,7 @@ export function GameUI({
           maxFeePerGas: maxFeePerGas
             ? parseGwei(maxFeePerGas.toString())
             : undefined,
-          gas: 5_000_000n,
+          gas: 2_000_000n,
           nonce: currentNonce,
         });
       }

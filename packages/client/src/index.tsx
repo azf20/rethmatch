@@ -8,13 +8,11 @@ import "./styles.css";
 
 import { WagmiProvider } from "wagmi";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ClerkProvider } from "@clerk/clerk-react";
 
 import { createSyncAdapter } from "@latticexyz/store-sync/internal";
 import { SyncProvider } from "@latticexyz/store-sync/react";
 import {
   CHAIN_ID,
-  CLERK_PUBLISHABLE_KEY,
   QUERY_CLIENT,
   START_BLOCK,
   WAGMI_CONFIG,

@@ -31,12 +31,13 @@
     "framer-motion": "^6",
     "idb-keyval": "^6.2.2",
     "js-sha3": "^0.9.3",
+    "ox": "^0.7.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rxjs": "7.5.5",
     "string-to-unicode-variant": "^1.0.9",
-    "viem": "^2.29.1",
-    "wagmi": "^2.15.2"
+    "viem": "^2.30.5",
+    "wagmi": "^2.15.4"
   },
   "devDependencies": {
     "@types/react": "18.2.22",
