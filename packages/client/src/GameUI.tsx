@@ -552,6 +552,18 @@ export function GameUI({
             <ModalBody>
               <Text fontSize="xs" color="#aaa" mb={2}>
                 Paste your access signature and X username to link your account.
+                <br />
+                <b>
+                  Connect your Twitter and get your signature from&nbsp;
+                  <a
+                    href="https://rethmatch.paradigm.xyz/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#00E893", textDecoration: "underline" }}
+                  >
+                    rethmatch.paradigm.xyz
+                  </a>
+                </b>
               </Text>
               <input
                 style={{
